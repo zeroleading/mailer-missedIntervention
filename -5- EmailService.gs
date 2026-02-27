@@ -58,14 +58,14 @@ function processCommunications(isDraft) {
       const baseText = (attendance === 'Absent') ? absentMsgRaw : attendedMsgRaw;
       
       // Replace placeholders
-      let personalizedBody = `${baseText}${closingText}${signature}`;
-      personalizedBody = personalizedBody.replace(/\{\{name\}\}/g, studentName);
+      let personalisedBody = `${baseText}${closingText}${signature}`;
+      personalisedBody = personalisedBody.replace(/\{\{name\}\}/g, studentName);
       
       // Preserve line breaks for HTML
-      personalizedBody = personalizedBody.replace(/\n/g, '<br>');
+      personalisedBody = personalisedBody.replace(/\n/g, '<br>');
 
       // Generate final HTML using the Shell
-      const htmlBody = buildHtmlEmail(personalizedBody);
+      const htmlBody = buildHtmlEmail(personalisedBody);
 
       // Generate Subject line
       let subject = CONFIG.SUBJECT_TEMPLATE
@@ -102,7 +102,7 @@ function processCommunications(isDraft) {
 
 /**
  * Wraps the text message inside the HTML template shell.
- * @param {string} bodyContent - The personalized text to inject.
+ * @param {string} bodyContent - The personalised text to inject.
  * @returns {string} The fully compiled HTML string.
  */
 function buildHtmlEmail(bodyContent) {
