@@ -65,7 +65,12 @@ function processCommunications(isDraft) {
       
       // Replace placeholders
       let personalisedBody = `${baseText}${closingText}${signature}`;
-      personalisedBody = personalisedBody.replace(/\{\{name\}\}/g, studentName);
+      personalisedBody = personalisedBody
+        .replace(/\{\{studentName\}\}/g, studentName)
+        .replace(/\{\{name\}\}/g, studentName) // Fallback for older templates
+        .replace(/\{\{subjectName\}\}/g, CONFIG.SUBJECT_NAME)
+        .replace(/\{\{sessionType\}\}/g, CONFIG.SESSION_TYPE)
+        .replace(/\{\{sessionDate\}\}/g, sessionDate);
       
       // Preserve line breaks for HTML
       personalisedBody = personalisedBody.replace(/\n/g, '<br>');

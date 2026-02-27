@@ -66,7 +66,13 @@ function getPreviewData() {
       }
       
       let body = `${baseMsg}${closingText}${signature}`;
-      body = body.replace(/\{\{name\}\}/g, studentName);
+      body = body
+        .replace(/\{\{studentName\}\}/g, studentName)
+        .replace(/\{\{name\}\}/g, studentName) // Fallback for older templates
+        .replace(/\{\{subjectName\}\}/g, CONFIG.SUBJECT_NAME)
+        .replace(/\{\{sessionType\}\}/g, CONFIG.SESSION_TYPE)
+        .replace(/\{\{sessionDate\}\}/g, sessionDate);
+        
       body = body.replace(/\n/g, '<br>');
       return buildHtmlEmail(body); // Reuses our existing function from EmailService.gs!
     };
