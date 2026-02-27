@@ -20,7 +20,7 @@ function setupSessions() {
 
   try {
     // 3. Get students from the table (filtering blanks)
-    const studentList = getTableColumn(CONFIG.TABLE_NAME_COMPULSORY, CONFIG.TABLE_COL_STUDENT, true);
+    let studentList = getTableColumn(CONFIG.TABLE_NAME_COMPULSORY, CONFIG.TABLE_COL_STUDENT, true);
     
     // 4. Duplicate the template sheet regardless of whether there are students
     const newSheet = templateSheet.copyTo(ss);
@@ -30,11 +30,16 @@ function setupSessions() {
     
     // 5. Inject the data ONLY if compulsory students exist
     if (studentList.length > 0) {
+      
+      // --- NEW LOGIC: Sort the student list alphabetically ---
+      // We use localeCompare to handle alphabetical sorting correctly (including accented characters if any)
+      studentList.sort((a, b) => a.toString().localeCompare(b.toString()));
+
       // Convert 1D array to 2D array for pasting: ["A", "B"] -> [["A"], ["B"]]
       const pasteData = studentList.map(student => [student]);
       newSheet.getRange(CONFIG.ROW_DATA_START, CONFIG.COL_RAW_STUDENT, pasteData.length, 1).setValues(pasteData);
       
-      ui.alert("Success", `Setup complete. Added ${studentList.length} compulsory students to the new sessions sheet.`, ui.ButtonSet.OK);
+      ui.alert("Success", `Setup complete. Added and sorted ${studentList.length} compulsory students to the new sessions sheet.`, ui.ButtonSet.OK);
     } else {
       ui.alert("Success", `Setup complete. A blank sessions sheet was created (no compulsory students found).`, ui.ButtonSet.OK);
     }
@@ -55,16 +60,20 @@ function getTableColumn(tableName, colName, excludeBlanks = false) {
   const table = sheet?.tables.find(t => t.name === tableName);
   if (!table) throw new Error(`Table '${tableName}' not found.`);
 
-  const col = table.columnProperties?.find(c => c.columnName === colName);
-  if (!col) throw new Error(`Column '${colName}' not found.`);
+  // Find the index of the column within the table's columns array
+  const colIndex = table.columnProperties?.findIndex(c => c.columnName === colName);
+  if (colIndex === undefined || colIndex === -1) throw new Error(`Column '${colName}' not found.`);
 
   const startRow = table.range.startRowIndex + 2; 
   const numRows = table.range.endRowIndex - table.range.startRowIndex - 1; 
 
   if (numRows <= 0) return [];
 
+  // Calculate the absolute 1-based column index on the sheet
+  const startCol = table.range.startColumnIndex + colIndex + 1;
+
   let data = ss.getSheetByName(sheet.properties.title)
-    .getRange(startRow, col.columnIndex + 1, numRows, 1)
+    .getRange(startRow, startCol, numRows, 1)
     .getValues()
     .flat(); 
 
