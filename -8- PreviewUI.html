@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 10px; margin: 0; background-color: #fafafa; }
+    .toolbar { display: flex; justify-content: space-between; margin-bottom: 15px; }
+    button {
+      padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;
+      background-color: #e0e0e0; color: #333; font-weight: bold; transition: 0.2s;
+    }
+    button.active { background-color: #0A856C; color: white; }
+    .subject-line { font-size: 14px; color: #555; margin-bottom: 10px; padding: 10px; background: #fff; border: 1px solid #ddd; border-radius: 4px;}
+    .subject-label { font-weight: bold; color: #222; }
+    iframe { width: 100%; height: 420px; border: 1px solid #ccc; border-radius: 4px; background: #fff; }
+    #loading { text-align: center; margin-top: 50px; font-style: italic; color: #666; }
+    #content-area { display: none; }
+  </style>
+</head>
+<body>
+
+  <div id="loading">Generating preview for active row...</div>
+
+  <div id="content-area">
+    <div class="toolbar">
+      <div>
+        <button id="btn-absent" class="active" onclick="showPreview('absent')">Absent Template</button>
+        <button id="btn-attended" onclick="showPreview('attended')">Attended Template</button>
+      </div>
+    </div>
+    
+    <div class="subject-line">
+      <span class="subject-label">Subject:</span> <span id="display-subject"></span>
+    </div>
+
+    <iframe id="preview-frame"></iframe>
+  </div>
+
+  <script>
+    let previewData = {};
+
+    // Call the backend function to get the compiled HTML when the modal loads
+    google.script.run
+      .withSuccessHandler(function(data) {
+        previewData = data;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content-area').style.display = 'block';
+        document.getElementById('display-subject').innerText = data.subjectLine;
+        showPreview('absent'); // Show absent by default
+      })
+      .getPreviewData();
+
+    function showPreview(type) {
+      // Toggle button styles
+      document.getElementById('btn-absent').classList.remove('active');
+      document.getElementById('btn-attended').classList.remove('active');
+      document.getElementById('btn-' + type).classList.add('active');
+
+      // Inject HTML into iframe (isolates CSS)
+      const frame = document.getElementById('preview-frame');
+      frame.srcdoc = type === 'absent' ? previewData.absentHtml : previewData.attendedHtml;
+    }
+  </script>
+</body>
+</html>

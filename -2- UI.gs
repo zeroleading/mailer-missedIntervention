@@ -9,5 +9,7 @@ function onOpen() {
     .addItem("2. Add new session column", "addSession")
     .addItem("3. Set drafts for attendance/absence", "setDrafts")
     .addItem("4. Send emails for attendance/absence", "sendEmails")
+    .addSeparator()
+    .addItem("🔍 Preview Email (Active Row)", "openPreviewModal")
     .addToUi();
 }

@@ -57,6 +57,12 @@ function processCommunications(isDraft) {
       // Select base text
       const baseText = (attendance === 'Absent') ? absentMsgRaw : attendedMsgRaw;
       
+      // BLANK TEMPLATE CHECK: Skip if template text is missing (e.g. "Absence Only" usage)
+      if (!baseText || baseText.toString().trim() === "") {
+        updatedStatuses.push([currentOutcome]); // Keep existing outcome
+        continue; // Skip this student
+      }
+      
       // Replace placeholders
       let personalisedBody = `${baseText}${closingText}${signature}`;
       personalisedBody = personalisedBody.replace(/\{\{name\}\}/g, studentName);
