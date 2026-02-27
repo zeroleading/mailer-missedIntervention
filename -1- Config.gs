@@ -5,8 +5,26 @@
 
 const CONFIG = {
   // --- Email Subject Line Settings ---
-  SUBJECT_NAME: "Geography", 
-  SESSION_TYPE: "Intervention", 
+  // We use JavaScript getters to fetch the Named Ranges dynamically. 
+  // The values are cached upon first request to prevent slowing down the batch processing loops.
+  _cachedSubject: null,
+  get SUBJECT_NAME() {
+    if (!this._cachedSubject) {
+      const range = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('selectedSubject');
+      this._cachedSubject = range ? range.getValue() : "Subject Not Set"; 
+    }
+    return this._cachedSubject;
+  },
+  
+  _cachedSession: null,
+  get SESSION_TYPE() {
+    if (!this._cachedSession) {
+      const range = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('selectedSessionType');
+      this._cachedSession = range ? range.getValue() : "Session Not Set";
+    }
+    return this._cachedSession;
+  },
+
   SUBJECT_TEMPLATE: "{{studentName}}: {{subjectName}} {{sessionType}} {{sessionDate}}",
 
   // --- Sheet Settings ---
