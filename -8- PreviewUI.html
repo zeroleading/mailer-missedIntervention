@@ -48,6 +48,9 @@
         document.getElementById('display-subject').innerText = data.subjectLine;
         showPreview('absent'); // Show absent by default
       })
+      .withFailureHandler(function(error) {
+        document.getElementById('loading').innerHTML = `<span style="color:red; font-weight:bold;">Error loading preview:</span><br><br>${error.message}`;
+      })
       .getPreviewData();
 
     function showPreview(type) {

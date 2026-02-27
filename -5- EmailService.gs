@@ -112,8 +112,14 @@ function processCommunications(isDraft) {
  * @returns {string} The fully compiled HTML string.
  */
 function buildHtmlEmail(bodyContent) {
-  const template = HtmlService.createTemplateFromFile('EmailTemplate');
+  const template = HtmlService.createTemplateFromFile('-6- EmailTemplate');
   template.messageBody = bodyContent;
-  template.config = CONFIG;
+  
+  // FLATTEN the config object to remove getters before passing to HtmlService
+  template.config = {
+    SUBJECT_NAME: CONFIG.SUBJECT_NAME,
+    SESSION_TYPE: CONFIG.SESSION_TYPE
+  };
+  
   return template.evaluate().getContent();
 }
