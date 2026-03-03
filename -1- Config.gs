@@ -35,8 +35,8 @@ const CONFIG = {
   TABLE_SETUP_SHEET: "setup",
   TABLE_NAME_COMPULSORY: "Compulsory",
   TABLE_COL_STUDENT: "Student",
-  TABLE_COL_START_DATE: "startDate", // NEW
-  TABLE_COL_END_DATE: "endDate",     // NEW
+  TABLE_COL_START_DATE: "StartDate", // NEW
+  TABLE_COL_END_DATE: "EndDate",     // NEW
   
   // --- Grid/Layout Indices (1-based) ---
   COL_RAW_STUDENT: 1,  

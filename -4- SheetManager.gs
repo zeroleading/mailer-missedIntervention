@@ -12,7 +12,21 @@ function addSession() {
   }
 
   const lastColumn = sheet.getRange(1, 1).getDataRegion().getLastColumn();
-  const lastRow = Math.max(sheet.getRange(1, 1).getDataRegion().getLastRow(), CONFIG.ROW_DATA_START);
+  
+  // --- NEW LOGIC: Accurately find the last row of data in Column A ---
+  // getDataRegion() can fail if there are blank rows. This scans Col A from the bottom up.
+  const colAValues = sheet.getRange("A:A").getValues();
+  let trueLastRow = 0;
+  for (let i = colAValues.length - 1; i >= 0; i--) {
+    if (colAValues[i][0] !== "") {
+      trueLastRow = i + 1; // Array is 0-indexed, rows are 1-indexed
+      break;
+    }
+  }
+  
+  // Ensure we at least go down to the starting row
+  const lastRow = Math.max(trueLastRow, CONFIG.ROW_DATA_START);
+  
   const user = Session.getActiveUser().getEmail();
   const formattedDate = Utilities.formatDate(new Date(), 'Europe/London', 'dd/MM/yy');
 
@@ -52,7 +66,7 @@ function addSession() {
       .setAllowInvalid(false)
       .build();
     
-    // Apply validation rules to the new data column
+    // Apply validation rules accurately down to the true last row
     const numRowsToValidate = lastRow - CONFIG.ROW_DATA_START + 1;
     if (numRowsToValidate > 0) {
       const dataRange = sheet.getRange(CONFIG.ROW_DATA_START, lastColumn + 1, numRowsToValidate, 1);
@@ -87,7 +101,7 @@ function sessionDetails() {
       ui.ButtonSet.OK_CANCEL
     );
 
-    if (sessionIdentified == ui.Button.OK) {
+    if (sessionIdentified === ui.Button.OK) {
       return [sessionRecent, lastColumn]; // Returns the date string and the OUTCOME column index
     }
   }

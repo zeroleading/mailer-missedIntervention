@@ -19,14 +19,28 @@ function setupSessions() {
   try {
     const mapping = getTableMapping(CONFIG.TABLE_NAME_COMPULSORY);
     const studentCol = mapping.cols[CONFIG.TABLE_COL_STUDENT];
+    const endCol = mapping.cols[CONFIG.TABLE_COL_END_DATE];
     
-    // Read the students from the table
+    // Read the students and end dates from the table
     let studentsRaw = [];
+    let endDatesRaw = [];
     if (mapping.numRows > 0) {
       studentsRaw = mapping.sheet.getRange(mapping.dataStartRow, studentCol, mapping.numRows, 1).getValues();
+      endDatesRaw = mapping.sheet.getRange(mapping.dataStartRow, endCol, mapping.numRows, 1).getValues();
     }
     
-    let studentList = studentsRaw.map(r => r[0]).filter(val => val !== "");
+    // Filter out blank rows and students who have an end date
+    // Using a Set naturally prevents duplicates if a student was added twice without an end date
+    const activeCompulsory = new Set();
+    for (let i = 0; i < studentsRaw.length; i++) {
+      const studentName = studentsRaw[i][0];
+      const endDate = endDatesRaw[i][0];
+      if (studentName !== "" && endDate === "") {
+        activeCompulsory.add(studentName.toString().trim());
+      }
+    }
+    
+    let studentList = Array.from(activeCompulsory);
     
     const newSheet = templateSheet.copyTo(ss);
     newSheet.setName(CONFIG.SESSION_SHEET_NAME);
@@ -34,15 +48,15 @@ function setupSessions() {
     ss.setActiveSheet(newSheet);
     
     if (studentList.length > 0) {
-      studentList.sort((a, b) => a.toString().localeCompare(b.toString()));
+      studentList.sort((a, b) => a.localeCompare(b));
       const pasteData = studentList.map(student => [student]);
       newSheet.getRange(CONFIG.ROW_DATA_START, CONFIG.COL_RAW_STUDENT, pasteData.length, 1).setValues(pasteData);
-      ui.alert("Success", `Setup complete. Added and sorted ${studentList.length} compulsory students to the new sessions sheet.`, ui.ButtonSet.OK);
+      ui.alert("Success", `Setup complete. Added and sorted ${studentList.length} active compulsory students to the new sessions sheet.`, ui.ButtonSet.OK);
     } else {
-      ui.alert("Success", `Setup complete. A blank sessions sheet was created (no compulsory students found).`, ui.ButtonSet.OK);
+      ui.alert("Success", `Setup complete. A blank sessions sheet was created (no active compulsory students found).`, ui.ButtonSet.OK);
     }
 
-    // NEW LOGIC: Stamp initial start dates for any students in the table who don't have one
+    // Stamp initial start dates for any students in the table who don't have one
     stampInitialStartDates(mapping);
     
   } catch (error) {

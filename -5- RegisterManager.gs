@@ -154,7 +154,7 @@ function syncAndSortRegister() {
         const sortRange = sheet.getRange(CONFIG.ROW_DATA_START, 1, newLastRow - CONFIG.ROW_DATA_START + 1, newLastCol);
         sortRange.sort([
             {column: CONFIG.COL_STAR, ascending: false}, // Sort 1: ★ Descending (Z to A groups stars at top)
-            {column: CONFIG.COL_STUDENT_NAME, ascending: true} // Sort 2: First Name Alphabetical
+            {column: CONFIG.COL_RAW_STUDENT, ascending: true} // Sort 2: Raw Student Alphabetical
         ]);
     }
 
