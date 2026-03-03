@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: #333; }
+    h3 { margin-top: 0; color: #0A856C; }
+    p { font-size: 14px; margin-bottom: 20px; color: #555; }
+    select { width: 100%; padding: 10px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 25px; outline: none; }
+    select:focus { border-color: #0A856C; }
+    .btn-group { text-align: right; }
+    button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .btn-cancel { background-color: #e0e0e0; color: #333; margin-right: 10px; }
+    .btn-cancel:hover { background-color: #d0d0d0; }
+    .btn-action { background-color: #0A856C; color: white; }
+    .btn-action:hover { background-color: #086d58; }
+    .btn-action:disabled { background-color: #a0c9c1; cursor: not-allowed; }
+    #loading { text-align: center; font-style: italic; color: #666; margin-top: 40px; }
+    #main-content { display: none; }
+    .success-msg { text-align: center; color: #0A856C; margin-top: 40px; display: none; }
+    .success-icon { font-size: 48px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <div id="loading">Scanning sheet for sessions...</div>
+
+  <div id="main-content">
+    <h3 id="modal-title">Select a Session</h3>
+    <p>Choose the session you want to process. By default, the most recent unprocessed session is selected.</p>
+    
+    <select id="session-select"></select>
+
+    <div class="btn-group">
+      <button class="btn-cancel" onclick="google.script.host.close()">Cancel</button>
+      <button id="btn-process" class="btn-action" onclick="startProcessing()">Process</button>
+    </div>
+  </div>
+  
+  <div id="success-screen" class="success-msg">
+    <div class="success-icon">✅</div>
+    <h3 style="margin-bottom: 5px;">Processing complete!</h3>
+    <p style="font-size: 13px; font-weight: normal; color: #555;">Emails have been successfully generated.</p>
+    <button class="btn-cancel" style="margin-top: 15px;" onclick="google.script.host.close()">Close Window</button>
+  </div>
+
+  <script>
+    // actionType is passed securely from the Apps Script backend ('draft' or 'send')
+    const actionType = '<?= actionType ?>';
+    
+    document.getElementById('modal-title').innerText = actionType === 'draft' ? 'Create Email Drafts' : 'Send Live Emails';
+    document.getElementById('btn-process').innerText = actionType === 'draft' ? 'Create Drafts' : 'Send Emails';
+
+    google.script.run
+      .withSuccessHandler(populateDropdown)
+      .withFailureHandler(showError)
+      .getSessionList();
+
+    function populateDropdown(data) {
+      const select = document.getElementById('session-select');
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+
+      if (data.pending.length === 0 && data.processed.length === 0) {
+        select.innerHTML = '<option value="">No sessions found on sheet</option>';
+        document.getElementById('btn-process').disabled = true;
+        return;
+      }
+
+      // Add Pending Group
+      if (data.pending.length > 0) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = '--- Pending Sessions ---';
+        data.pending.forEach(session => {
+          const opt = document.createElement('option');
+          opt.value = session.outcomeCol;
+          opt.text = session.date;
+          optgroup.appendChild(opt);
+        });
+        select.appendChild(optgroup);
+      }
+
+      // Add Processed Group
+      if (data.processed.length > 0) {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = '--- Already Processed ---';
+        data.processed.forEach(session => {
+          const opt = document.createElement('option');
+          opt.value = session.outcomeCol;
+          opt.text = session.date + ' (Processed)';
+          optgroup.appendChild(opt);
+        });
+        select.appendChild(optgroup);
+      }
+
+      // UX Magic: Auto-select the last pending session if available
+      if (data.pending.length > 0) {
+        select.value = data.pending[data.pending.length - 1].outcomeCol;
+      }
+    }
+
+    function showError(error) {
+      document.getElementById('loading').innerHTML = `<span style="color:red; font-weight:bold;">Error:</span><br><br>${error.message}`;
+    }
+
+    function startProcessing() {
+      const selectedCol = document.getElementById('session-select').value;
+      if (!selectedCol) return;
+
+      document.getElementById('btn-process').disabled = true;
+      document.getElementById('btn-process').innerText = 'Processing...';
+
+      google.script.run
+        .withSuccessHandler(() => {
+          document.getElementById('main-content').style.display = 'none';
+          document.getElementById('success-screen').style.display = 'block';
+        })
+        .withFailureHandler((error) => {
+           alert("Error during processing: " + error.message);
+           document.getElementById('btn-process').disabled = false;
+           document.getElementById('btn-process').innerText = actionType === 'draft' ? 'Create Drafts' : 'Send Emails';
+        })
+        .executeSessionProcess(parseInt(selectedCol), actionType);
+    }
+  </script>
+</body>
+</html>

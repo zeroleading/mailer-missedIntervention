@@ -15,15 +15,32 @@ function sendEmails() {
 /**
  * Core engine to read sheet data in batch, evaluate logic, and send/draft emails.
  * @param {boolean} isDraft - True if creating drafts, false if sending emails directly.
+ * @param {number} [passedOutcomeColIndex] - The specific outcome column to process (passed from Session Selector UI).
  */
-function processCommunications(isDraft) {
+function processCommunications(isDraft, passedOutcomeColIndex) {
   const ui = SpreadsheetApp.getUi();
   const sheet = SpreadsheetApp.getActiveSheet();
   
-  const details = sessionDetails();
-  if (!details) return; // User cancelled or error
-  
-  const [sessionDate, outcomeColIndex] = details;
+  let sessionDate = "";
+  let outcomeColIndex = passedOutcomeColIndex;
+
+  // Fallback for legacy execution (if called directly without the modal)
+  if (!outcomeColIndex) {
+    const details = sessionDetails();
+    if (!details) return; // User cancelled or error
+    sessionDate = details[0];
+    outcomeColIndex = details[1];
+  } else {
+    // Extract date from the header to the left of the passed outcome column
+    const sessionRecent = sheet.getRange(1, outcomeColIndex - 1).getValue().toString();
+    const wheresTheAt = sessionRecent.indexOf('@');
+    if (wheresTheAt !== -1) {
+      sessionDate = sessionRecent.substring(wheresTheAt + 12).trim();
+    } else {
+      sessionDate = "[Session Date]";
+    }
+  }
+
   const attendanceColIndex = outcomeColIndex - 1; 
 
   // Batch Read: Get all sheet data at once to improve speed
@@ -109,6 +126,9 @@ function processCommunications(isDraft) {
   if (updatedStatuses.length > 0) {
     sheet.getRange(CONFIG.ROW_DATA_START, outcomeColIndex, updatedStatuses.length, 1).setValues(updatedStatuses);
   }
+
+  // NEW LOGIC: Mark header as processed
+  sheet.getRange(1, outcomeColIndex).setValue('Outcome ✅');
 }
 
 /**
@@ -117,7 +137,7 @@ function processCommunications(isDraft) {
  * @returns {string} The fully compiled HTML string.
  */
 function buildHtmlEmail(bodyContent) {
-  const template = HtmlService.createTemplateFromFile('-6- EmailTemplate');
+  const template = HtmlService.createTemplateFromFile('-07- EmailTemplate');
   template.messageBody = bodyContent;
   
   // FLATTEN the config object to remove getters before passing to HtmlService
