@@ -5,8 +5,6 @@
 
 const CONFIG = {
   // --- Email Subject Line Settings ---
-  // We use JavaScript getters to fetch the Named Ranges dynamically. 
-  // The values are cached upon first request to prevent slowing down the batch processing loops.
   _cachedSubject: null,
   get SUBJECT_NAME() {
     if (!this._cachedSubject) {
@@ -29,20 +27,22 @@ const CONFIG = {
 
   // --- Sheet Settings ---
   MESSAGE_SHEET_NAME: "message",
-  TEMPLATE_SHEET_NAME: "cleanSheet", // The hidden template
-  SESSION_SHEET_NAME: "sessions",    // The newly created sheet
+  TEMPLATE_SHEET_NAME: "cleanSheet", 
+  SESSION_SHEET_NAME: "sessions",    
   STAR_SYMBOL: "★", 
   
   // --- Table Settings (for Setup) ---
   TABLE_SETUP_SHEET: "setup",
   TABLE_NAME_COMPULSORY: "Compulsory",
   TABLE_COL_STUDENT: "Student",
+  TABLE_COL_START_DATE: "startDate", // NEW
+  TABLE_COL_END_DATE: "endDate",     // NEW
   
   // --- Grid/Layout Indices (1-based) ---
-  COL_RAW_STUDENT: 1,  // The raw data pasted from the Table (Col A)
-  COL_STUDENT_NAME: 2, // The calculated First Name via BYROW (Col B)
-  COL_STUDENT_EMAIL: 3, // Student email for CC (Col C)
-  COL_PARENT_EMAIL: 4, // Parent Email (Col D)
-  COL_STAR: 5,         // Star Tracker (Col E)
-  ROW_DATA_START: 3    // Row 1: Headers, Row 2: Hidden BYROWs, Row 3: Data start
+  COL_RAW_STUDENT: 1,  
+  COL_STUDENT_NAME: 2, 
+  COL_STUDENT_EMAIL: 3, 
+  COL_PARENT_EMAIL: 4, 
+  COL_STAR: 5,         
+  ROW_DATA_START: 3    
 };

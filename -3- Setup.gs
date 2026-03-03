@@ -5,13 +5,11 @@ function setupSessions() {
   const ui = SpreadsheetApp.getUi();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // 1. Safety Check: Does 'sessions' already exist?
   if (ss.getSheetByName(CONFIG.SESSION_SHEET_NAME)) {
     ui.alert("Sheet Exists", `A sheet named '${CONFIG.SESSION_SHEET_NAME}' already exists.\n\nPlease rename the current sessions sheet (e.g., to 'sessions_term1') and retry.`, ui.ButtonSet.OK);
     return;
   }
   
-  // 2. Fetch the cleanSheet template
   const templateSheet = ss.getSheetByName(CONFIG.TEMPLATE_SHEET_NAME);
   if (!templateSheet) {
     ui.alert("Error", `Could not find the template sheet named '${CONFIG.TEMPLATE_SHEET_NAME}'.`, ui.ButtonSet.OK);
@@ -19,30 +17,33 @@ function setupSessions() {
   }
 
   try {
-    // 3. Get students from the table (filtering blanks)
-    let studentList = getTableColumn(CONFIG.TABLE_NAME_COMPULSORY, CONFIG.TABLE_COL_STUDENT, true);
+    const mapping = getTableMapping(CONFIG.TABLE_NAME_COMPULSORY);
+    const studentCol = mapping.cols[CONFIG.TABLE_COL_STUDENT];
     
-    // 4. Duplicate the template sheet regardless of whether there are students
+    // Read the students from the table
+    let studentsRaw = [];
+    if (mapping.numRows > 0) {
+      studentsRaw = mapping.sheet.getRange(mapping.dataStartRow, studentCol, mapping.numRows, 1).getValues();
+    }
+    
+    let studentList = studentsRaw.map(r => r[0]).filter(val => val !== "");
+    
     const newSheet = templateSheet.copyTo(ss);
     newSheet.setName(CONFIG.SESSION_SHEET_NAME);
-    newSheet.showSheet(); // Ensure it is visible
+    newSheet.showSheet(); 
     ss.setActiveSheet(newSheet);
     
-    // 5. Inject the data ONLY if compulsory students exist
     if (studentList.length > 0) {
-      
-      // --- NEW LOGIC: Sort the student list alphabetically ---
-      // We use localeCompare to handle alphabetical sorting correctly (including accented characters if any)
       studentList.sort((a, b) => a.toString().localeCompare(b.toString()));
-
-      // Convert 1D array to 2D array for pasting: ["A", "B"] -> [["A"], ["B"]]
       const pasteData = studentList.map(student => [student]);
       newSheet.getRange(CONFIG.ROW_DATA_START, CONFIG.COL_RAW_STUDENT, pasteData.length, 1).setValues(pasteData);
-      
       ui.alert("Success", `Setup complete. Added and sorted ${studentList.length} compulsory students to the new sessions sheet.`, ui.ButtonSet.OK);
     } else {
       ui.alert("Success", `Setup complete. A blank sessions sheet was created (no compulsory students found).`, ui.ButtonSet.OK);
     }
+
+    // NEW LOGIC: Stamp initial start dates for any students in the table who don't have one
+    stampInitialStartDates(mapping);
     
   } catch (error) {
     ui.alert("Setup Failed", error.message, ui.ButtonSet.OK);
@@ -50,36 +51,58 @@ function setupSessions() {
 }
 
 /**
- * Retrieves values from a specific column in a Table via the Advanced Sheets API.
+ * Stamps today's date into the startDate column for any table row that is missing it.
  */
-function getTableColumn(tableName, colName, excludeBlanks = false) {
+function stampInitialStartDates(mapping) {
+  if (mapping.numRows <= 0) return;
+  const studentCol = mapping.cols[CONFIG.TABLE_COL_STUDENT];
+  const startCol = mapping.cols[CONFIG.TABLE_COL_START_DATE];
+  if (!studentCol || !startCol) return;
+
+  const students = mapping.sheet.getRange(mapping.dataStartRow, studentCol, mapping.numRows, 1).getValues();
+  const startDates = mapping.sheet.getRange(mapping.dataStartRow, startCol, mapping.numRows, 1).getValues();
+  const today = Utilities.formatDate(new Date(), 'Europe/London', 'dd/MM/yy');
+  let changed = false;
+
+  for (let i = 0; i < students.length; i++) {
+    if (students[i][0] !== "" && startDates[i][0] === "") {
+      startDates[i][0] = today;
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    mapping.sheet.getRange(mapping.dataStartRow, startCol, mapping.numRows, 1).setValues(startDates);
+  }
+}
+
+/**
+ * Super-Helper: Returns exact grid coordinates and column mappings for a named Table.
+ */
+function getTableMapping(tableName) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const ssData = Sheets.Spreadsheets.get(ss.getId());
 
-  const sheet = ssData.sheets.find(s => s.tables?.some(t => t.name === tableName));
-  const table = sheet?.tables.find(t => t.name === tableName);
+  const sheetData = ssData.sheets.find(s => s.tables?.some(t => t.name === tableName));
+  if (!sheetData) throw new Error(`Sheet containing table '${tableName}' not found.`);
+  const table = sheetData.tables.find(t => t.name === tableName);
   if (!table) throw new Error(`Table '${tableName}' not found.`);
 
-  // Find the index of the column within the table's columns array
-  const colIndex = table.columnProperties?.findIndex(c => c.columnName === colName);
-  if (colIndex === undefined || colIndex === -1) throw new Error(`Column '${colName}' not found.`);
-
-  const startRow = table.range.startRowIndex + 2; 
+  const sheet = ss.getSheetByName(sheetData.properties.title);
+  const startRow = table.range.startRowIndex + 1; // 1-based Header row
+  const dataStartRow = startRow + 1;              // First row of data
   const numRows = table.range.endRowIndex - table.range.startRowIndex - 1; 
+  const startCol = table.range.startColumnIndex + 1;
 
-  if (numRows <= 0) return [];
+  const colMapping = {};
+  table.columnProperties.forEach((col, idx) => {
+     colMapping[col.columnName] = startCol + idx;
+  });
 
-  // Calculate the absolute 1-based column index on the sheet
-  const startCol = table.range.startColumnIndex + colIndex + 1;
-
-  let data = ss.getSheetByName(sheet.properties.title)
-    .getRange(startRow, startCol, numRows, 1)
-    .getValues()
-    .flat(); 
-
-  if (excludeBlanks) {
-    data = data.filter(val => val !== ""); 
-  }
-
-  return data;
+  return {
+     sheet: sheet,
+     dataStartRow: dataStartRow,
+     numRows: numRows,
+     cols: colMapping
+  };
 }

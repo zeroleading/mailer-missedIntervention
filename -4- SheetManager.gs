@@ -6,8 +6,8 @@ function addSession() {
   const sheet = SpreadsheetApp.getActiveSheet();
   
   // Guard clause to ensure they are on a tracking sheet
-  if (sheet.getName() === CONFIG.TABLE_SETUP_SHEET || sheet.getName() === CONFIG.MESSAGE_SHEET_NAME) {
-    ui.alert("Please navigate to your 'sessions' sheet before adding a session.");
+  if (sheet.getName() !== CONFIG.SESSION_SHEET_NAME) {
+    ui.alert(`Please navigate to your '${CONFIG.SESSION_SHEET_NAME}' sheet before adding a session.`);
     return;
   }
 
@@ -22,7 +22,7 @@ function addSession() {
     ui.ButtonSet.OK_CANCEL
   );
 
-  if (sessionDatePrompt.getSelectedButton() == ui.Button.OK) {
+  if (sessionDatePrompt.getSelectedButton() === ui.Button.OK) {
     const sessionDate = sessionDatePrompt.getResponseText() || formattedDate;
 
     // Insert columns and format
@@ -75,7 +75,7 @@ function sessionDetails() {
   let sessionRecent = sheet.getRange(1, lastColumn - 1).getValue();
   const wheresTheAt = sessionRecent.indexOf('@'); // Looks for email in "Logged by:"
 
-  if (wheresTheAt == -1) {
+  if (wheresTheAt === -1) {
     ui.alert('Session has not been set correctly, please set at least one session before continuing');
     return null;
   } else {

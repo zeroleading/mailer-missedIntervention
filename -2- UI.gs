@@ -10,6 +10,10 @@ function onOpen() {
     .addItem("3. Set drafts for attendance/absence", "setDrafts")
     .addItem("4. Send emails for attendance/absence", "sendEmails")
     .addSeparator()
+    .addItem("⭐ Convert to Compulsory (Active Row)", "makeCompulsory")
+    .addItem("❌ Convert to Non-Compulsory (Active Row)", "makeNonCompulsory")
+    .addItem("🔄 Sync & Sort Register", "syncAndSortRegister")
+    .addSeparator()
     .addItem("🔍 Preview Email (Active Row)", "openPreviewModal")
     .addToUi();
 }
